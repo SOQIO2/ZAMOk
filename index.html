@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Замок со словом</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prata&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: одна сцена — латунный замок на тёмной стали, поле ввода под ним, тайна открывается ниже */
+:root{
+  --bg:#12171d;
+  --steel:#1c242d;
+  --line:#2c3743;
+  --fg:#e9e3d6;
+  --muted:#8d97a1;
+  --brass:#d2a24c;
+  --brass-hi:#f3d48f;
+  --brass-lo:#8a6424;
+  --bad:#e0685a;
+  --good:#8fc79a;
+  --f-display:"Prata", Georgia, "Times New Roman", serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme:dark;
+}
+html,body{min-height:100%}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(ellipse 70% 50% at 50% 30%, #1f2a35 0%, transparent 70%);
+  color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-inline:16px;padding-block:32px 48px;
+}
+.wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:28px;text-align:center}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--brass)}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(34px,8vw,52px);line-height:1.05;margin:6px 0 0;text-wrap:balance}
+.lede{color:var(--muted);margin:10px 0 0;max-width:38ch}
+
+.stage{position:relative;width:min(70vw,270px);aspect-ratio:200/285;max-width:100%;perspective:700px}
+.stage svg{width:100%;height:100%;overflow:visible;display:block;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .25s ease-out;filter:drop-shadow(0 18px 24px rgba(0,0,0,.45));animation:float 5s ease-in-out infinite}
+@keyframes float{0%,100%{translate:0 0}50%{translate:0 -6px}}
+
+#shackle{transition:transform .7s cubic-bezier(.3,1.6,.5,1);transform-box:view-box;transform-origin:60px 120px}
+.open #shackle{transform:translateY(-34px) scaleX(-1);transition-duration:.9s}
+#bear{transform-box:view-box;transform:translate(35px,170px);transition:transform 1s cubic-bezier(.3,1.45,.5,1) .55s}
+.open #bear{transform:translate(35px,22px)}
+#bear-inner{transform-box:view-box}
+.open #bear-inner{animation:bob 2.6s ease-in-out 1.7s infinite}
+@keyframes bob{0%,100%{transform:rotate(0)}30%{transform:rotate(-3deg)}70%{transform:rotate(3deg)}}
+#bear-inner{transform-origin:100px 200px}
+#note{transform-box:fill-box;transform-origin:50% 50%;transform:scale(.15);opacity:0;transition:transform .6s cubic-bezier(.3,1.6,.5,1) 1.45s,opacity .3s 1.45s}
+.open #note{transform:scale(1);opacity:1}
+#shackle-wrap,#lockfront{transform-box:view-box;transform-origin:100px 190px;transition:transform 1s cubic-bezier(.55,0,.9,.5),opacity .5s .5s}
+.fall #shackle-wrap,.fall #lockfront{transform:translateY(460px) rotate(22deg);opacity:0}
+.fall #shackle-wrap{transform:translateY(470px) rotate(-30deg)}
+#sparkles path{opacity:0;transform-box:fill-box;transform-origin:center}
+.landed #sparkles path{animation:twinkle 2.2s ease-in-out infinite}
+.landed #sparkles path:nth-child(2){animation-delay:.4s}
+.landed #sparkles path:nth-child(3){animation-delay:.9s}
+.landed #sparkles path:nth-child(4){animation-delay:1.3s}
+.landed #sparkles path:nth-child(5){animation-delay:.7s}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
+#cloud{opacity:0;transform-box:fill-box;transform-origin:50% 100%;transform:scale(.3);filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}
+.landed #cloud{opacity:1;transform:scale(1);transition:transform .6s cubic-bezier(.3,1.6,.5,1) .8s,opacity .3s .8s;animation:cloudfloat 3.4s ease-in-out 1.5s infinite}
+@keyframes cloudfloat{0%,100%{translate:0 0}50%{translate:0 -4px}}
+.landed #bear{transform:translate(35px,72px);transition:transform .7s cubic-bezier(.4,1.6,.5,1)}
+
+#key{opacity:0;transform-box:view-box;transform-origin:100px 168px;transform:translate(70px,-90px) scale(1.9) rotate(-35deg)}
+.inserting #key,.turning #key,.open #key{opacity:1;transform:none;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.turning #key,.open #key{transform:rotate(90deg);transition:transform .45s cubic-bezier(.5,0,.3,1.3)}
+
+#body{transform-box:view-box;transform-origin:100px 180px}
+.shake #body,.shake #shackle-wrap{animation:shake .45s}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-9px) rotate(-2deg)}
+  40%{transform:translateX(8px) rotate(2deg)}
+  60%{transform:translateX(-5px)}
+  80%{transform:translateX(3px)}
+}
+#glow{opacity:0;transition:opacity .8s}
+.open #glow{opacity:1}
+#ring{opacity:0;transform-box:view-box;transform-origin:100px 168px}
+.open #ring{animation:ring 1.1s ease-out .1s}
+@keyframes ring{0%{opacity:.9;transform:scale(.3)}100%{opacity:0;transform:scale(3.2)}}
+
+.wrap{min-height:calc(100vh - 80px);justify-content:center}
+form{display:flex;flex-direction:column;gap:14px;width:100%}
+.q{font-family:var(--f-display);font-size:clamp(24px,6vw,32px);line-height:1.2;text-wrap:balance}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row input{flex:1 1 200px;min-width:0}
+input{
+  width:100%;box-sizing:border-box;font:500 18px var(--f-mono);letter-spacing:.06em;
+  background:var(--steel);color:var(--fg);border:1.5px solid var(--line);border-radius:10px;
+  padding:14px 16px;outline:none;transition:border-color .2s, box-shadow .2s;text-align:center;
+}
+input::placeholder{color:#5c6772;letter-spacing:.02em}
+input:focus{border-color:var(--brass);box-shadow:0 0 0 3px rgba(210,162,76,.2)}
+input.bad{border-color:var(--bad)}
+button{
+  font:600 16px var(--f-body);border:0;border-radius:10px;padding:14px 22px;cursor:pointer;
+  background:linear-gradient(180deg,var(--brass-hi),var(--brass) 55%,var(--brass-lo));color:#241808;
+  box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 6px 18px -8px rgba(210,162,76,.6);
+  transition:transform .12s, filter .2s;flex:0 0 auto;
+}
+button:hover{filter:brightness(1.07)}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:2px solid var(--brass-hi);outline-offset:3px}
+button:disabled{filter:grayscale(.6) brightness(.7);cursor:default}
+.ghost{background:transparent;color:var(--brass);box-shadow:inset 0 0 0 1.5px var(--line)}
+
+.status{min-height:1.6em;font-size:15px;color:var(--muted);margin:-12px 0 0}
+.status.bad{color:var(--bad)}
+.status.good{color:var(--good)}
+.meta{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.meta b{color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
+details{color:var(--muted);font-size:14px}
+summary{cursor:pointer;color:var(--brass)}
+summary:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:4px}
+
+.secret{
+  width:100%;box-sizing:border-box;padding:24px 22px;border-radius:14px;
+  background:linear-gradient(180deg,#1e2730,#171e25);border:1px solid var(--line);
+  animation:rise .7s cubic-bezier(.2,.8,.2,1) both;
+}
+.secret h2{font-family:var(--f-display);font-weight:400;font-size:28px;margin:0 0 8px;color:var(--brass-hi)}
+.secret p{margin:0 0 18px}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+
+</head>
+<body>
+<main class="wrap">
+
+  <div class="stage" id="stage" aria-live="polite">
+    <svg viewBox="0 0 200 285" role="img" aria-label="Латунный навесной замок">
+      <defs>
+        <linearGradient id="face" x1="0" y1="0" x2=".9" y2="1">
+          <stop offset="0" stop-color="#ffe8ad"/>
+          <stop offset=".18" stop-color="#e9bd63"/>
+          <stop offset=".55" stop-color="#c8963f"/>
+          <stop offset=".85" stop-color="#9c7029"/>
+          <stop offset="1" stop-color="#7a561c"/>
+        </linearGradient>
+        <linearGradient id="side" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#8a6424"/>
+          <stop offset="1" stop-color="#3f2c0c"/>
+        </linearGradient>
+        <linearGradient id="bevel" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fff6d8" stop-opacity=".95"/>
+          <stop offset=".5" stop-color="#fff6d8" stop-opacity=".15"/>
+          <stop offset="1" stop-color="#3f2c0c" stop-opacity=".6"/>
+        </linearGradient>
+        <linearGradient id="inset" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#3f2c0c" stop-opacity=".55"/>
+          <stop offset=".5" stop-color="#3f2c0c" stop-opacity=".1"/>
+          <stop offset="1" stop-color="#fff2c4" stop-opacity=".7"/>
+        </linearGradient>
+        <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+          <stop offset=".5" stop-color="#fff" stop-opacity=".45"/>
+          <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="steelG" x1="0" x2="1">
+          <stop offset="0" stop-color="#525c66"/>
+          <stop offset=".22" stop-color="#c9d1d8"/>
+          <stop offset=".38" stop-color="#ffffff"/>
+          <stop offset=".6" stop-color="#9aa5af"/>
+          <stop offset="1" stop-color="#3e4750"/>
+        </linearGradient>
+        <radialGradient id="plate" cx=".38" cy=".32" r=".8">
+          <stop offset="0" stop-color="#f7d68e"/>
+          <stop offset=".6" stop-color="#b98838"/>
+          <stop offset="1" stop-color="#6e4f1b"/>
+        </radialGradient>
+        <radialGradient id="hole" cx=".5" cy=".3" r=".8">
+          <stop offset="0" stop-color="#2a1d08"/>
+          <stop offset="1" stop-color="#050302"/>
+        </radialGradient>
+        <radialGradient id="rivet" cx=".35" cy=".3" r=".75">
+          <stop offset="0" stop-color="#fff3cc"/>
+          <stop offset=".45" stop-color="#c8963f"/>
+          <stop offset="1" stop-color="#5e4316"/>
+        </radialGradient>
+        <linearGradient id="keyG" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fff0c2"/>
+          <stop offset=".45" stop-color="#e2b660"/>
+          <stop offset="1" stop-color="#7a561c"/>
+        </linearGradient>
+        <radialGradient id="glowG">
+          <stop offset="0" stop-color="#f3d48f" stop-opacity=".55"/>
+          <stop offset="1" stop-color="#f3d48f" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="floor">
+          <stop offset="0" stop-color="#000" stop-opacity=".55"/>
+          <stop offset="1" stop-color="#000" stop-opacity="0"/>
+        </radialGradient>
+        <clipPath id="bodyClip"><rect x="26" y="112" width="148" height="140" rx="22"/></clipPath>
+        <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.2"/></filter>
+        <radialGradient id="fur" cx=".36" cy=".28" r=".85">
+          <stop offset="0" stop-color="#eab47f"/>
+          <stop offset=".55" stop-color="#bd7f45"/>
+          <stop offset="1" stop-color="#7e4c22"/>
+        </radialGradient>
+        <radialGradient id="muz" cx=".4" cy=".3" r=".8">
+          <stop offset="0" stop-color="#fbe6c6"/>
+          <stop offset="1" stop-color="#d6a674"/>
+        </radialGradient>
+        <radialGradient id="ear" cx=".5" cy=".4" r=".7">
+          <stop offset="0" stop-color="#f2c39b"/>
+          <stop offset="1" stop-color="#b9774a"/>
+        </radialGradient>
+        <radialGradient id="eye" cx=".4" cy=".3" r=".8">
+          <stop offset="0" stop-color="#4a3528"/>
+          <stop offset="1" stop-color="#0a0604"/>
+        </radialGradient>
+        <linearGradient id="bow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ff6b7d"/>
+          <stop offset="1" stop-color="#b8283b"/>
+        </linearGradient>
+        <filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
+        <filter id="blur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+      </defs>
+
+      <ellipse cx="104" cy="272" rx="82" ry="10" fill="url(#floor)"/>
+      <circle id="glow" cx="100" cy="170" r="120" fill="url(#glowG)"/>
+
+      <g id="shackle-wrap">
+        <g id="shackle">
+          <path d="M60 130 V72 a40 40 0 0 1 80 0 V130" fill="none" stroke="#2a3138" stroke-width="22" stroke-linecap="round"/>
+          <path d="M60 130 V72 a40 40 0 0 1 80 0 V130" fill="none" stroke="url(#steelG)" stroke-width="18" stroke-linecap="round"/>
+          <path d="M56 128 V72 a44 44 0 0 1 42 -43.9" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2.5" stroke-linecap="round" filter="url(#soft)"/>
+          <path d="M136 128 V72" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="2" stroke-linecap="round" filter="url(#soft)"/>
+        </g>
+      </g>
+
+
+      <clipPath id="bearClip"><rect x="-40" y="-120" width="280" height="372"/></clipPath>
+      <g clip-path="url(#bearClip)">
+       <g id="bear">
+        <g id="bear-inner">
+          <circle cx="24" cy="30" r="17" fill="url(#fur)"/>
+          <circle cx="106" cy="30" r="17" fill="url(#fur)"/>
+          <circle cx="25" cy="31" r="9.5" fill="url(#ear)"/>
+          <circle cx="105" cy="31" r="9.5" fill="url(#ear)"/>
+
+          <ellipse cx="65" cy="128" rx="45" ry="43" fill="url(#fur)"/>
+          <ellipse cx="65" cy="138" rx="28" ry="26" fill="url(#muz)" opacity=".85"/>
+
+          <ellipse cx="34" cy="160" rx="21" ry="16" fill="url(#fur)"/>
+          <ellipse cx="96" cy="160" rx="21" ry="16" fill="url(#fur)"/>
+          <ellipse cx="31" cy="163" rx="12" ry="10.5" fill="url(#muz)"/>
+          <ellipse cx="99" cy="163" rx="12" ry="10.5" fill="url(#muz)"/>
+          <g fill="#b98353" opacity=".7">
+            <circle cx="24" cy="157" r="2.4"/><circle cx="31" cy="154.5" r="2.4"/><circle cx="38" cy="157" r="2.4"/>
+            <circle cx="92" cy="157" r="2.4"/><circle cx="99" cy="154.5" r="2.4"/><circle cx="106" cy="157" r="2.4"/>
+          </g>
+
+          <ellipse cx="65" cy="96" rx="34" ry="8" fill="#5a3518" opacity=".35" filter="url(#blur2)"/>
+          <ellipse cx="65" cy="58" rx="45" ry="41" fill="url(#fur)"/>
+          <ellipse cx="46" cy="33" rx="17" ry="9" fill="#fff" opacity=".22" filter="url(#blur2)" transform="rotate(-20 46 33)"/>
+
+          <ellipse cx="65" cy="75" rx="20" ry="15" fill="url(#muz)"/>
+          <ellipse cx="65" cy="67" rx="7.5" ry="5.5" fill="#3a2214"/>
+          <ellipse cx="62.5" cy="65" rx="2.6" ry="1.5" fill="#fff" opacity=".55"/>
+          <path d="M65 72 v4.5 M59 78 q6 5 12 0" fill="none" stroke="#3a2214" stroke-width="1.7" stroke-linecap="round"/>
+
+          <ellipse cx="46" cy="54" rx="5.8" ry="6.8" fill="url(#eye)"/>
+          <ellipse cx="84" cy="54" rx="5.8" ry="6.8" fill="url(#eye)"/>
+          <circle cx="47.8" cy="51.5" r="2.1" fill="#fff"/><circle cx="85.8" cy="51.5" r="2.1" fill="#fff"/>
+          <circle cx="44.6" cy="57" r=".9" fill="#fff" opacity=".8"/><circle cx="82.6" cy="57" r=".9" fill="#fff" opacity=".8"/>
+          <ellipse cx="35" cy="72" rx="8" ry="5" fill="#ff8f8f" opacity=".45" filter="url(#blur1)"/>
+          <ellipse cx="95" cy="72" rx="8" ry="5" fill="#ff8f8f" opacity=".45" filter="url(#blur1)"/>
+
+          <g>
+            <path d="M65 99 C52 88 40 92 44 101 C47 108 58 104 65 99 Z" fill="url(#bow)"/>
+            <path d="M65 99 C78 88 90 92 86 101 C83 108 72 104 65 99 Z" fill="url(#bow)"/>
+            <path d="M62 101 L56 114 L61 112 L63 116 Z M68 101 L74 114 L69 112 L67 116 Z" fill="#b8283b"/>
+            <ellipse cx="65" cy="99.5" rx="5" ry="4.5" fill="#d93a4f"/>
+            <ellipse cx="63.8" cy="98" rx="1.8" ry="1.1" fill="#fff" opacity=".5"/>
+          </g>
+
+          <g id="note">
+            <g transform="rotate(-4 65 128)">
+              <rect x="23" y="108" width="84" height="44" rx="3" fill="#fffaf0" stroke="#e2d6bd"/>
+              <text x="65" y="135" text-anchor="middle" font-family="Prata, Georgia, serif" font-size="15" fill="#6b2630">Умничка</text>
+              <path d="M95 147 l-3.6 -3.6 a2 2 0 0 1 3.6 -2.4 a2 2 0 0 1 3.6 2.4 z" fill="#d94b5c"/>
+            </g>
+          </g>
+          <circle cx="22" cy="130" r="13" fill="url(#fur)"/>
+          <circle cx="108" cy="126" r="13" fill="url(#fur)"/>
+          <ellipse cx="18" cy="125" rx="5" ry="3" fill="#fff" opacity=".2" filter="url(#blur1)"/>
+          <ellipse cx="104" cy="121" rx="5" ry="3" fill="#fff" opacity=".2" filter="url(#blur1)"/>
+        </g>
+       </g>
+      </g>
+      <g id="sparkles" fill="#ffe7a6">
+        <path d="M18 60 l3 -9 l3 9 l9 3 l-9 3 l-3 9 l-3 -9 l-9 -3 z"/>
+        <path d="M178 80 l2.2 -6.5 l2.2 6.5 l6.5 2.2 l-6.5 2.2 l-2.2 6.5 l-2.2 -6.5 l-6.5 -2.2 z"/>
+        <path d="M24 190 l2 -6 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 z"/>
+        <path d="M176 196 l3 -9 l3 9 l9 3 l-9 3 l-3 9 l-3 -9 l-9 -3 z"/>
+        <path d="M150 20 l1.6 -5 l1.6 5 l5 1.6 l-5 1.6 l-1.6 5 l-1.6 -5 l-5 -1.6 z"/>
+      </g>
+      <g id="cloud">
+        <g fill="#fffaf0">
+          <circle cx="46" cy="46" r="18"/><circle cx="70" cy="30" r="22"/><circle cx="100" cy="25" r="25"/>
+          <circle cx="130" cy="30" r="22"/><circle cx="154" cy="46" r="18"/>
+          <circle cx="70" cy="62" r="16"/><circle cx="100" cy="64" r="18"/><circle cx="130" cy="62" r="16"/>
+          <rect x="36" y="34" width="128" height="38" rx="19"/>
+          <circle cx="92" cy="86" r="5"/><circle cx="96" cy="95" r="3"/>
+        </g>
+        <text x="100" y="47" text-anchor="middle" font-family="Prata, Georgia, serif" font-size="13.5" fill="#4a2a30">Что любит Даня?</text>
+        <text x="100" y="64" text-anchor="middle" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="10" fill="#7a5560">Там следующая подсказка</text>
+      </g>
+      <g id="lockfront">
+      <g id="body">
+        <rect x="31" y="119" width="148" height="140" rx="22" fill="url(#side)"/>
+        <rect x="26" y="112" width="148" height="140" rx="22" fill="url(#face)"/>
+        <g clip-path="url(#bodyClip)">
+          <rect x="-20" y="80" width="46" height="220" fill="url(#sheen)" transform="rotate(-24 100 180)" opacity=".55"/>
+          <rect x="26" y="112" width="148" height="10" fill="#fff6d8" opacity=".18"/>
+        </g>
+        <rect x="27.5" y="113.5" width="145" height="137" rx="20.5" fill="none" stroke="url(#bevel)" stroke-width="3"/>
+        <rect x="40" y="126" width="120" height="112" rx="13" fill="none" stroke="url(#inset)" stroke-width="2"/>
+
+        <ellipse cx="60" cy="114" rx="11.5" ry="3.6" fill="#1a1106"/>
+        <ellipse cx="140" cy="114" rx="11.5" ry="3.6" fill="#1a1106"/>
+
+        <g>
+          <circle cx="45" cy="131" r="4" fill="url(#rivet)"/><circle cx="155" cy="131" r="4" fill="url(#rivet)"/>
+          <circle cx="45" cy="233" r="4" fill="url(#rivet)"/><circle cx="155" cy="233" r="4" fill="url(#rivet)"/>
+        </g>
+
+        <circle cx="101.5" cy="171" r="27" fill="#3f2c0c" opacity=".45"/>
+        <circle cx="100" cy="168" r="26" fill="url(#plate)"/>
+        <circle cx="100" cy="168" r="24.5" fill="none" stroke="url(#bevel)" stroke-width="2"/>
+        <circle cx="100" cy="168" r="19" fill="none" stroke="url(#inset)" stroke-width="1.5"/>
+        <g>
+          <circle cx="100" cy="162" r="8.5" fill="url(#hole)"/>
+          <path d="M95 165 L105 165 L107.5 186 L92.5 186 Z" fill="url(#hole)"/>
+          <path d="M92.6 186 L107.4 186" stroke="#fff2c4" stroke-opacity=".55" stroke-width="1"/>
+        </g>
+
+        <text x="100" y="226" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8.5" letter-spacing="2.4" fill="#4a3410" fill-opacity=".75">№ 07 · 1887</text>
+        <text x="100" y="227" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8.5" letter-spacing="2.4" fill="#fff2c4" fill-opacity=".25">№ 07 · 1887</text>
+      </g>
+
+      <circle id="ring" cx="100" cy="168" r="22" fill="none" stroke="#f3d48f" stroke-width="2"/>
+
+      <g id="key">
+        <rect x="96" y="150" width="8" height="34" rx="2" fill="url(#keyG)" stroke="#7a561c" stroke-width=".8"/>
+        <rect x="97" y="152" width="2" height="30" rx="1" fill="#fff6d8" opacity=".7"/>
+        <circle cx="100" cy="132" r="17" fill="url(#keyG)" stroke="#7a561c" stroke-width="1.5"/>
+        <circle cx="100" cy="132" r="13.5" fill="none" stroke="#fff6d8" stroke-opacity=".5" stroke-width="1.2"/>
+        <circle cx="100" cy="132" r="6.5" fill="#12171d" stroke="#7a561c" stroke-width="1"/>
+        <rect x="92.5" y="146" width="15" height="5" rx="2" fill="#c8963f" stroke="#7a561c" stroke-width=".6"/>
+      </g>
+      </g>
+    </svg>
+  </div>
+
+  <form id="form" autocomplete="off">
+    <label for="word" class="q">Кто очень красивая девушка?</label>
+    <div class="row">
+      <input id="word" name="word" spellcheck="false" autocapitalize="off" required>
+      <button id="go" type="submit">Открыть</button>
+    </div>
+  </form>
+</main>
+
+<script>
+// Кодовое слово: поменяй здесь. Регистр, пробелы и ё/е не важны.
+const SECRETS = ["Милана", "Я"];
+
+const norm = s => s.trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ");
+const stage = document.getElementById("stage");
+const form = document.getElementById("form");
+const input = document.getElementById("word");
+const go = document.getElementById("go");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let busy = false;
+const wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+  if (busy) return;
+  const v = norm(input.value);
+  if (!v) return;
+
+  if (!SECRETS.some(s => norm(s) === v)) {
+    input.classList.add("bad");
+    stage.classList.remove("shake"); void stage.offsetWidth; stage.classList.add("shake");
+    input.select();
+    return;
+  }
+
+  busy = true; go.disabled = true; input.disabled = true;
+  input.classList.remove("bad");
+  stage.classList.add("inserting"); await wait(750);
+  stage.classList.add("turning");   await wait(480);
+  stage.classList.add("open");
+  await wait(2100);
+  stage.classList.add("fall");
+  await wait(750);
+  stage.classList.add("landed");
+});
+
+input.addEventListener("input", () => input.classList.remove("bad"));
+
+if (!reduce) addEventListener("pointermove", e => {
+  const x = e.clientX / innerWidth - .5, y = e.clientY / innerHeight - .5;
+  stage.style.setProperty("--ry", (x * 18).toFixed(2) + "deg");
+  stage.style.setProperty("--rx", (-y * 12).toFixed(2) + "deg");
+});
+</script>
+
+</body>
+</html>
